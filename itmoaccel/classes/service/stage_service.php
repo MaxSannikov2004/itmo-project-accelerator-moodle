@@ -122,6 +122,42 @@ class stage_service {
         $DB->update_record('local_itmoaccel_submissions', $sub);
     }
 
+    public static function ensure_files_submission(int $projectid, int $stagedefid): \stdClass {
+        global $DB;
+        $now = time();
+        $existing = self::get_latest_submission($projectid, $stagedefid);
+
+        if (!$existing) {
+            $id = $DB->insert_record('local_itmoaccel_submissions', (object)[
+                'projectid' => $projectid,
+                'stagedefid' => $stagedefid,
+                'version' => 1,
+                'status' => self::STATUS_DRAFT,
+                'datajson' => json_encode(['type' => 'files'], JSON_UNESCAPED_UNICODE),
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
+            return $DB->get_record('local_itmoaccel_submissions', ['id' => $id], '*', MUST_EXIST);
+        }
+
+        // Если уже согласовано — создаём новую версию, чтобы не править “подписанную”.
+        if ((int)$existing->status === self::STATUS_APPROVED) {
+            $id = $DB->insert_record('local_itmoaccel_submissions', (object)[
+                'projectid' => $projectid,
+                'stagedefid' => $stagedefid,
+                'version' => ((int)$existing->version) + 1,
+                'status' => self::STATUS_DRAFT,
+                'datajson' => json_encode(['type' => 'files'], JSON_UNESCAPED_UNICODE),
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
+            return $DB->get_record('local_itmoaccel_submissions', ['id' => $id], '*', MUST_EXIST);
+        }
+
+        return $existing;
+    }
+
+
     public static function status_label(int $status): string {
         switch ($status) {
             case self::STATUS_PENDING: return get_string('status_pending', 'local_itmoaccel');

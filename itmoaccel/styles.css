@@ -1,23 +1,77 @@
+/* Layout helpers */
+.itmo-muted { opacity: .72; }
+.itmo-stack { display: grid; gap: 12px; }
+.itmo-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.itmo-card--soft { background: rgba(0,0,0,.015); }
+
+/* Steps / progress */
 .itmo-steps {
   display: flex;
   flex-wrap: wrap;
   gap: .5rem;
   padding: .75rem;
-  border: 1px solid rgba(0,0,0,.1);
-  border-radius: .75rem;
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 16px;
   background: rgba(0,0,0,.02);
 }
 .itmo-step {
-  display: inline-block;
-  padding: .35rem .6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: .38rem .65rem;
   border-radius: 999px;
   border: 1px solid rgba(0,0,0,.12);
   text-decoration: none;
+  line-height: 1;
+  background: #fff;
 }
-.itmo-step.is-active { font-weight: 700; }
-.itmo-step.is-ok { border-color: rgba(0,128,0,.35); }
-.itmo-step.is-pending { border-color: rgba(255,165,0,.55); }
-.itmo-step.is-bad { border-color: rgba(255,0,0,.45); }
-.itmo-muted { opacity: .75; }
+.itmo-step.is-active { font-weight: 700; outline: 2px solid rgba(0,0,0,.06); }
+
+.itmo-step.is-ok { border-color: rgba(16,185,129,.55); }
+.itmo-step.is-pending { border-color: rgba(245,158,11,.70); }
+.itmo-step.is-bad { border-color: rgba(239,68,68,.55); }
+
+/* Badges */
+.itmo-badge {
+  display: inline-block;
+  padding: .25rem .55rem;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.02);
+}
+.itmo-badge--pending { border-color: rgba(245,158,11,.65); background: rgba(245,158,11,.10); }
+.itmo-badge--ok { border-color: rgba(16,185,129,.55); background: rgba(16,185,129,.10); }
+.itmo-badge--bad { border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.10); }
+
+/* Supervisor chips per stage */
+.itmo-chiprow { display: flex; flex-wrap: wrap; gap: 6px; }
+.itmo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: .28rem .5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  text-decoration: none;
+  background: #fff;
+  font-size: 12px;
+}
+.itmo-chip--pending { border-color: rgba(245,158,11,.65); }
+.itmo-chip--ok { border-color: rgba(16,185,129,.55); }
+.itmo-chip--bad { border-color: rgba(239,68,68,.55); }
+
+/* Lists */
 .itmo-topics li { margin: .35rem 0; }
-.itmo-list .itmo-row { padding: .6rem .8rem; border-bottom: 1px solid rgba(0,0,0,.08); }
+.itmo-filelist li { margin: .25rem 0; }
+
+.itmo-list .itmo-row {
+  padding: .6rem .8rem;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}

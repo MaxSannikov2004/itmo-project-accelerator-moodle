@@ -41,12 +41,22 @@ $textvalue = is_array($data) ? (string)($data['text'] ?? '') : '';
 echo $OUTPUT->header();
 
 // Nav
-echo html_writer::div(
-    html_writer::link(new moodle_url('/local/itmoaccel/projects.php'), get_string('nav_projects', 'local_itmoaccel'), ['class' => 'me-3']) .
-    html_writer::link(new moodle_url('/local/itmoaccel/profile.php'), get_string('nav_profile', 'local_itmoaccel'), ['class' => 'me-3']) .
-    html_writer::link(new moodle_url('/local/itmoaccel/materials.php'), get_string('nav_materials', 'local_itmoaccel')),
-    'mb-3'
-);
+$links = [];
+$links[] = html_writer::link(new moodle_url('/local/itmoaccel/projects.php'), get_string('nav_projects', 'local_itmoaccel'), ['class' => 'me-3']);
+$links[] = html_writer::link(new moodle_url('/local/itmoaccel/profile.php'), get_string('nav_profile', 'local_itmoaccel'), ['class' => 'me-3']);
+$links[] = html_writer::link(new moodle_url('/local/itmoaccel/materials.php'), get_string('nav_materials', 'local_itmoaccel'), ['class' => 'me-3']);
+
+if (has_capability('local/itmoaccel:supervisor', $context)) {
+    $links[] = html_writer::link(new moodle_url('/local/itmoaccel/supervisor.php'), get_string('nav_supervisor', 'local_itmoaccel'), ['class' => 'me-3']);
+}
+if (has_capability('local/itmoaccel:manage', $context)) {
+    $links[] = html_writer::link(new moodle_url('/local/itmoaccel/manage.php'), get_string('nav_manage', 'local_itmoaccel'), ['class' => 'me-3']);
+    $links[] = html_writer::link(new moodle_url('/local/itmoaccel/manage_stages.php'), get_string('nav_stages', 'local_itmoaccel'), ['class' => 'me-3']);
+    $links[] = html_writer::link(new moodle_url('/local/itmoaccel/manage_materials.php'), get_string('manage_materials', 'local_itmoaccel'), ['class' => 'me-3']);
+}
+
+echo html_writer::div(implode('', $links), 'mb-3');
+
 
 // Progress bar
 echo html_writer::start_tag('div', ['class' => 'itmo-steps']);
@@ -65,6 +75,8 @@ foreach ($stages as $sd) {
 echo html_writer::end_tag('div');
 
 echo html_writer::tag('h3', s($stagedef->title), ['class' => 'mt-3']);
+
+echo html_writer::start_div('itmo-card itmo-stack');
 
 // Supervisor info
 $supervisor = \local_itmoaccel\service\project_service::get_supervisor_user($projectid);
@@ -129,6 +141,109 @@ if ($stagedef->handlertype === 'text' && $isowner) {
 
     $mform->display();
 }
+
+// Files stage (upload + submit)
+if ($stagedef->handlertype === 'files') {
+    // Всегда обеспечиваем сабмишен, чтобы было к чему привязать filearea.
+    $filesub = \local_itmoaccel\service\stage_service::ensure_files_submission($projectid, (int)$stagedef->id);
+
+    $sysctx = context_system::instance();
+    $options = [
+        'subdirs' => 0,
+        'maxfiles' => 10,
+        'accepted_types' => '*',
+        'return_types' => FILE_INTERNAL,
+    ];
+
+    // Показ статуса этапа
+    $currentstatus = $filesub ? (int)$filesub->status : \local_itmoaccel\service\stage_service::STATUS_DRAFT;
+    $badgecls = 'itmo-badge itmo-badge--draft';
+    if ($currentstatus === \local_itmoaccel\service\stage_service::STATUS_PENDING) $badgecls = 'itmo-badge itmo-badge--pending';
+    if ($currentstatus === \local_itmoaccel\service\stage_service::STATUS_APPROVED) $badgecls = 'itmo-badge itmo-badge--ok';
+    if ($currentstatus === \local_itmoaccel\service\stage_service::STATUS_REJECTED) $badgecls = 'itmo-badge itmo-badge--bad';
+
+    echo html_writer::div(
+        html_writer::tag('span', \local_itmoaccel\service\stage_service::status_label($currentstatus), ['class' => $badgecls]),
+        'mb-3'
+    );
+
+    // Если отклонено — комментарий
+    if ($filesub && (int)$filesub->status === \local_itmoaccel\service\stage_service::STATUS_REJECTED && !empty($filesub->decisioncomment)) {
+        echo $OUTPUT->notification('Комментарий руководителя: ' . s($filesub->decisioncomment), 'notifyproblem');
+    }
+
+    // Форма загрузки доступна только владельцу проекта
+    if ($isowner) {
+        $draftid = file_get_submitted_draft_itemid('files_draft');
+        file_prepare_draft_area($draftid, $sysctx->id, 'local_itmoaccel', 'stagefiles', (int)$filesub->id, $options);
+
+        $fform = new \local_itmoaccel\form\stage_files_form(null);
+        $fform->set_data([
+            'files_draft' => $draftid,
+            'submissionid' => (int)$filesub->id,
+        ]);
+
+        if ($fform->is_cancelled()) {
+            redirect($PAGE->url);
+        } else if ($fdata = $fform->get_data()) {
+            require_sesskey();
+
+            // Сохраняем файлы из draft area в plugin file area
+            file_save_draft_area_files((int)$fdata->files_draft, $sysctx->id, 'local_itmoaccel', 'stagefiles', (int)$filesub->id, $options);
+
+            // Обновим timemodified
+            global $DB;
+            $filesub->timemodified = time();
+            if ((int)$filesub->status === \local_itmoaccel\service\stage_service::STATUS_REJECTED) {
+                $filesub->status = \local_itmoaccel\service\stage_service::STATUS_DRAFT;
+            }
+            $DB->update_record('local_itmoaccel_submissions', $filesub);
+
+            // Если нажали “submit”
+            $submit = optional_param('submitbtn', '', PARAM_RAW);
+            if ($submit !== '') {
+                \local_itmoaccel\service\stage_service::mark_pending((int)$filesub->id);
+                if ($supervisor) {
+                    \local_itmoaccel\service\notifier::notify_stage_submitted($USER->id, (int)$supervisor->id, $project->name, $stagedef->title);
+                }
+            }
+
+            redirect($PAGE->url);
+        }
+
+        echo html_writer::div('', 'itmo-card itmo-card--soft');
+        $fform->display();
+    }
+
+    // Просмотр файлов (и школьнику, и руководителю)
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($sysctx->id, 'local_itmoaccel', 'stagefiles', (int)$filesub->id, 'filename ASC', false);
+
+    echo html_writer::tag('h4', 'Файлы этапа', ['class' => 'mt-4']);
+
+    if (!$files) {
+        echo html_writer::div('Файлы ещё не загружены.', 'itmo-muted');
+    } else {
+        echo html_writer::start_tag('ul', ['class' => 'itmo-filelist']);
+        foreach ($files as $f) {
+            $url = moodle_url::make_pluginfile_url(
+                $sysctx->id,
+                'local_itmoaccel',
+                'stagefiles',
+                (int)$filesub->id,
+                '/',
+                $f->get_filename(),
+                true
+            );
+            echo html_writer::tag('li', html_writer::link($url, s($f->get_filename())));
+        }
+        echo html_writer::end_tag('ul');
+    }
+
+    // Обновим $latest, чтобы блок согласования ниже работал с files submission
+    $latest = $filesub;
+}
+
 
 // Display AI topics as list with "use topic" (writes into stage 'topic')
 if ($stagedef->handlertype === 'ai_topics') {
@@ -198,5 +313,7 @@ if ($issupervisor && $latest && (int)$latest->status === \local_itmoaccel\servic
     echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => get_string('reject', 'local_itmoaccel'), 'class' => 'btn btn-danger mt-2']);
     echo html_writer::end_tag('form');
 }
+
+echo html_writer::end_div();
 
 echo $OUTPUT->footer();
