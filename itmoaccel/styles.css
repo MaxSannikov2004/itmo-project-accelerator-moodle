@@ -1,0 +1,23 @@
+.itmo-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .75rem;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: .75rem;
+  background: rgba(0,0,0,.02);
+}
+.itmo-step {
+  display: inline-block;
+  padding: .35rem .6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.12);
+  text-decoration: none;
+}
+.itmo-step.is-active { font-weight: 700; }
+.itmo-step.is-ok { border-color: rgba(0,128,0,.35); }
+.itmo-step.is-pending { border-color: rgba(255,165,0,.55); }
+.itmo-step.is-bad { border-color: rgba(255,0,0,.45); }
+.itmo-muted { opacity: .75; }
+.itmo-topics li { margin: .35rem 0; }
+.itmo-list .itmo-row { padding: .6rem .8rem; border-bottom: 1px solid rgba(0,0,0,.08); }
