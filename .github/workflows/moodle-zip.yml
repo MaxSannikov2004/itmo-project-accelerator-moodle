@@ -1,0 +1,32 @@
+name: Build Moodle plugin ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create zip
+        run: |
+          zip -r local_itmoaccel.zip itmoaccel -x "**/.DS_Store" -x "**/__MACOSX/**"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local_itmoaccel.zip
+          path: local_itmoaccel.zip
+
+      - name: Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: local_itmoaccel.zip
