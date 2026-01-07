@@ -114,6 +114,61 @@
         <INDEX NAME="idx_sort" UNIQUE="false" FIELDS="sortorder"/>
       </INDEXES>
     </TABLE>
+    
+    <TABLE NAME="local_itmoaccel_participants" COMMENT="Approved participants">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="10"/>
+        <FIELD NAME="timeapproved" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_user_unique" UNIQUE="true" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_itmoaccel_requests" COMMENT="Join requests student->supervisor">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="studentid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="supervisorid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="message" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timedecided" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="deciderid" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="decisioncomment" TYPE="text" NOTNULL="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_supervisor_status" UNIQUE="false" FIELDS="supervisorid,status"/>
+        <INDEX NAME="idx_student_status" UNIQUE="false" FIELDS="studentid,status"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_itmoaccel_supervisor_codes" COMMENT="Supervisor join codes">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="supervisorid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="32" NOTNULL="true"/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_supervisor_unique" UNIQUE="true" FIELDS="supervisorid"/>
+        <INDEX NAME="idx_code_unique" UNIQUE="true" FIELDS="code"/>
+      </INDEXES>
+    </TABLE>
 
   </TABLES>
 </XMLDB>

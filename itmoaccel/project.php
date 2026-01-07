@@ -2,6 +2,7 @@
 require_once(__DIR__ . '/../../config.php');
 
 require_login();
+\local_itmoaccel\service\access_service::require_participant_or_staff();
 $context = context_system::instance();
 
 $projectid = optional_param('projectid', 0, PARAM_INT);
@@ -80,6 +81,10 @@ echo html_writer::start_div('itmo-card itmo-stack');
 
 // Supervisor info
 $supervisor = \local_itmoaccel\service\project_service::get_supervisor_user($projectid);
+$can_submit = (bool)$supervisor;
+if ($isowner && !$can_submit) {
+    echo $OUTPUT->notification('Руководитель не назначен — отправка на согласование недоступна.', 'notifywarning');
+}
 if ($supervisor) {
     echo html_writer::div('Руководитель: ' . fullname($supervisor), 'itmo-muted mb-3');
 } else {
@@ -112,7 +117,7 @@ if ($isowner && $stagedef->handlertype === 'ai_topics') {
 
 // Text stage form (topic/goals/plan/text)
 if ($stagedef->handlertype === 'text' && $isowner) {
-    $mform = new \local_itmoaccel\form\stage_text_form(null);
+    $mform = new \local_itmoaccel\form\stage_text_form(null, ['can_submit' => $can_submit]);
     $toform = ['text' => $textvalue, 'action' => 'textsave'];
     $mform->set_data($toform);
 
@@ -125,11 +130,13 @@ if ($stagedef->handlertype === 'text' && $isowner) {
         // Determine which button pressed:
         $submit = optional_param('submitbtn', '', PARAM_RAW);
         if ($submit !== '') {
-            \local_itmoaccel\service\stage_service::mark_pending((int)$saved->id);
-            // notify supervisor
-            if ($supervisor) {
-                \local_itmoaccel\service\notifier::notify_stage_submitted($USER->id, (int)$supervisor->id, $project->name, $stagedef->title);
+            if (!$supervisor) {
+                redirect($PAGE->url, 'Руководитель не назначен — нельзя отправить на согласование.', null,
+                    \core\output\notification::NOTIFY_WARNING);
             }
+
+            \local_itmoaccel\service\stage_service::mark_pending((int)$saved->id);
+            \local_itmoaccel\service\notifier::notify_stage_submitted($USER->id, (int)$supervisor->id, $project->name, $stagedef->title);
         }
         redirect($PAGE->url);
     }
@@ -177,7 +184,7 @@ if ($stagedef->handlertype === 'files') {
         $draftid = file_get_submitted_draft_itemid('files_draft');
         file_prepare_draft_area($draftid, $sysctx->id, 'local_itmoaccel', 'stagefiles', (int)$filesub->id, $options);
 
-        $fform = new \local_itmoaccel\form\stage_files_form(null);
+        $fform = new \local_itmoaccel\form\stage_files_form(null, ['can_submit' => $can_submit]);
         $fform->set_data([
             'files_draft' => $draftid,
             'submissionid' => (int)$filesub->id,
@@ -202,12 +209,14 @@ if ($stagedef->handlertype === 'files') {
             // Если нажали “submit”
             $submit = optional_param('submitbtn', '', PARAM_RAW);
             if ($submit !== '') {
-                \local_itmoaccel\service\stage_service::mark_pending((int)$filesub->id);
-                if ($supervisor) {
-                    \local_itmoaccel\service\notifier::notify_stage_submitted($USER->id, (int)$supervisor->id, $project->name, $stagedef->title);
+                if (!$supervisor) {
+                    redirect($PAGE->url, 'Руководитель не назначен — нельзя отправить на согласование.', null,
+                        \core\output\notification::NOTIFY_WARNING);
                 }
-            }
 
+                \local_itmoaccel\service\stage_service::mark_pending((int)$filesub->id);
+                \local_itmoaccel\service\notifier::notify_stage_submitted($USER->id, (int)$supervisor->id, $project->name, $stagedef->title);
+            }
             redirect($PAGE->url);
         }
 

@@ -2,6 +2,7 @@
 require_once(__DIR__ . '/../../config.php');
 
 require_login();
+\local_itmoaccel\service\access_service::require_participant_or_staff();
 $context = context_system::instance();
 
 $PAGE->set_context($context);

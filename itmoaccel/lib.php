@@ -5,7 +5,7 @@ function local_itmoaccel_extend_navigation(global_navigation $navigation) {
     if (!isloggedin() || isguestuser()) {
         return;
     }
-    $url = new moodle_url('/local/itmoaccel/projects.php');
+    $url = new moodle_url('/local/itmoaccel/index.php');
     $navigation->add(get_string('pluginname', 'local_itmoaccel'), $url, navigation_node::TYPE_CUSTOM);
 }
 
